@@ -47,7 +47,8 @@ def comando(token, acao):
         dados[token] = {}
     dados[token]["comando"] = acao
     salvar_dados(dados)
-    return jsonify({"ok": True, "comando": acao})
+    from flask import redirect
+    return redirect("/painel/" + token)
 
 @app.route("/painel/<token>")
 def painel(token):
