@@ -47,22 +47,34 @@ def comando(token, acao):
         dados[token] = {}
     dados[token]["comando"] = acao
     salvar_dados(dados)
-    from flask import redirect
-    return redirect("/painel/" + token)
+    return jsonify({"ok": True, "comando": acao})
 
 @app.route("/painel/<token>")
 def painel(token):
     dados = carregar_dados()
     u = dados.get(token, {})
-    lucro     = u.get("lucro", 0)
-    status    = u.get("status", "---")
-    adx       = u.get("adx", 0)
-    rsi       = u.get("rsi", 0)
-    atr       = u.get("atr", 0)
-    atualizado= u.get("atualizado", "---")
-    comando   = u.get("comando", "livre")
+    lucro      = u.get("lucro", 0)
+    status     = u.get("status", "---")
+    adx        = u.get("adx", 0)
+    rsi        = u.get("rsi", 0)
+    atr        = u.get("atr", 0)
+    atualizado = u.get("atualizado", "---")
+    comando    = u.get("comando", "livre")
+
     cor_lucro = "#00c864" if lucro >= 0 else "#dc3c3c"
     cor_cmd   = "#00c864" if comando == "livre" else "#dc3c3c"
+
+    # [NOVO] Status com cor e texto amigável
+    status_map = {
+        "comprado":      ("#00c864", "COMPRADO"),
+        "vendido":       ("#dc3c3c", "VENDIDO"),
+        "aguardando":    ("#f0c800", "AGUARDANDO"),
+        "aguard_ignicao":("#ff5050", "AGUARD. IGNICAO"),
+        "ignicao_ativa": ("#ff5050", "IGNICAO ATIVA"),
+        "encerrado":     ("#888888", "ENCERRADO"),
+    }
+    cor_status, status_txt = status_map.get(status, ("#ffffff", status.upper()))
+
     return f"""
     <!DOCTYPE html>
     <html lang="pt-br">
@@ -84,25 +96,45 @@ def painel(token):
         .btn-parar {{ background: #dc3c3c; color: white; }}
         .btn-liberar {{ background: #00c864; color: white; }}
         .atualizado {{ text-align: center; color: #506080; font-size: 0.75em; margin-top: 16px; }}
+        .version {{ text-align: center; color: #3c5090; font-size: 0.7em; margin-top: 4px; }}
       </style>
     </head>
     <body>
-      <h1>🤖 BULLRUNN PRIME</h1>
+      <h1>BULLRUNN PRIME</h1>
       <div class="card">
-        <div class="row"><span class="label">Status</span><span class="value">{status.upper()}</span></div>
-        <div class="row"><span class="label">Lucro do dia</span><span class="value" style="color:{cor_lucro}">R$ {lucro:.2f}</span></div>
-        <div class="row"><span class="label">ADX</span><span class="value">{adx:.1f}</span></div>
-        <div class="row"><span class="label">RSI</span><span class="value">{rsi:.1f}</span></div>
-        <div class="row"><span class="label">ATR</span><span class="value">{atr:.1f}</span></div>
-        <div class="row"><span class="label">Comando atual</span><span class="value" style="color:{cor_cmd}">{comando.upper()}</span></div>
+        <div class="row">
+          <span class="label">Status</span>
+          <span class="value" style="color:{cor_status}">{status_txt}</span>
+        </div>
+        <div class="row">
+          <span class="label">Lucro do dia</span>
+          <span class="value" style="color:{cor_lucro}">R$ {lucro:.2f}</span>
+        </div>
+        <div class="row">
+          <span class="label">ADX</span>
+          <span class="value">{adx:.1f}</span>
+        </div>
+        <div class="row">
+          <span class="label">RSI</span>
+          <span class="value">{rsi:.1f}</span>
+        </div>
+        <div class="row">
+          <span class="label">ATR</span>
+          <span class="value">{atr:.1f}</span>
+        </div>
+        <div class="row">
+          <span class="label">Controle remoto</span>
+          <span class="value" style="color:{cor_cmd}">{comando.upper()}</span>
+        </div>
       </div>
       <form method="post" action="/comando/{token}/parar">
-        <button class="btn btn-parar">⛔ PARAR E FECHAR POSIÇÃO</button>
+        <button class="btn btn-parar">PARAR E FECHAR POSICAO</button>
       </form>
       <form method="post" action="/comando/{token}/livre">
-        <button class="btn btn-liberar" style="margin-top:10px">✅ LIBERAR PARA OPERAR</button>
+        <button class="btn btn-liberar" style="margin-top:10px">LIBERAR PARA OPERAR</button>
       </form>
-      <p class="atualizado">Atualizado às {atualizado} · Página recarrega a cada 10s</p>
+      <p class="atualizado">Atualizado as {atualizado} · Pagina recarrega a cada 10s</p>
+      <p class="version">BullRunnPrime v2.0.9</p>
     </body>
     </html>
     """
